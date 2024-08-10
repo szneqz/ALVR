@@ -1,5 +1,6 @@
 use super::{
     presets::{builtin_schema, PresetControl},
+    search::SearchControl,
     NestingInfo, SettingControl,
 };
 use crate::dashboard::{DisplayString, ServerRequest};
@@ -34,6 +35,7 @@ pub struct SettingsTab {
     top_level_entries: Vec<TopLevelEntry>,
     session_settings_json: Option<json::Value>,
     last_update_instant: Instant,
+    search_bar: SearchControl,
 }
 
 impl SettingsTab {
@@ -79,6 +81,7 @@ impl SettingsTab {
             top_level_entries,
             session_settings_json: None,
             last_update_instant: Instant::now(),
+            search_bar: SearchControl::new(),
         }
     }
 
@@ -154,6 +157,11 @@ impl SettingsTab {
                                 RichText::new(entry.id.display.clone()).raised().size(15.0),
                             );
                         }
+                        ui.selectable_value(
+                            &mut self.selected_top_tab_id,
+                            "search".into(),
+                            RichText::new("🔍 Search").raised().size(15.0),
+                        );
                     })
                 })
         });
@@ -191,6 +199,12 @@ impl SettingsTab {
                             path_value_pairs.extend(self.eye_face_tracking_preset.ui(ui));
                             ui.end_row();
                         })
+                });
+        } else if self.selected_top_tab_id == "search" {
+            ScrollArea::new([false, true])
+                .id_source("search_scroll")
+                .show(ui, |ui| {
+                    self.search_bar.ui(ui);
                 });
         } else {
             ScrollArea::new([false, true])

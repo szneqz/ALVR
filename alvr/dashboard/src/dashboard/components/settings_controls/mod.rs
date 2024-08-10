@@ -8,6 +8,7 @@ pub mod number;
 pub mod optional;
 pub mod presets;
 pub mod reset;
+pub mod search;
 pub mod section;
 pub mod switch;
 pub mod text;
