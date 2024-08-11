@@ -9,20 +9,20 @@ use alvr_session::settings_schema::{SchemaEntry, SchemaNode};
 use eframe::egui::Ui;
 use serde_json as json;
 
-struct Entry {
-    id: DisplayString,
+pub(crate) struct Entry {
+    pub id: DisplayString,
     help: Option<String>,
     // notice: Option<String>,
     hidden: bool,
     steamvr_restart_flag: bool,
     real_time_flag: bool,
-    control: SettingControl,
+    pub control: SettingControl,
 }
 
 pub struct Control {
-    nesting_info: NestingInfo,
-    entries: Vec<Entry>,
-    gui_collapsible: bool,
+    pub nesting_info: NestingInfo,
+    pub entries: Vec<Entry>,
+    pub gui_collapsible: bool,
 }
 
 impl Control {

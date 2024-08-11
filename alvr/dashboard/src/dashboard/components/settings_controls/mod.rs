@@ -57,7 +57,6 @@ pub struct NestingInfo {
     pub path: Vec<PathSegment>,
     pub indentation_level: usize,
 }
-
 pub enum SettingControl {
     Section(section::Control),
     Choice(choice::Control),
@@ -159,6 +158,21 @@ impl SettingControl {
 
                 None
             }
+        }
+    }
+
+    // Method to access `entries` from the Section variant
+    pub fn get_entries(&mut self) -> Option<&mut Vec<section::Entry>> {
+        fn unbox<T>(value: Box<T>) -> T {
+            *value
+        }
+
+        if let Self::Section(control) = self {
+            Some(&mut control.entries)
+        //} else if let Self::Optional(control) = self {
+        //    let abc = Some(unbox(control.content_control)));
+        } else {
+            None
         }
     }
 }

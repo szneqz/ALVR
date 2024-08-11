@@ -201,10 +201,31 @@ impl SettingsTab {
                         })
                 });
         } else if self.selected_top_tab_id == "search" {
-            ScrollArea::new([false, true])
-                .id_source("search_scroll")
+            Grid::new("search_grid")
+                .striped(true)
+                .num_columns(3)
                 .show(ui, |ui| {
-                    self.search_bar.ui(ui);
+                    self.search_bar.ui(ui, &mut self.session_settings_json);
+
+                    if let Some(session_fragment) = &mut self.session_settings_json {
+                        let session_fragments_mut = session_fragment.as_object_mut().unwrap();
+
+                        for entry in &mut self.top_level_entries {
+                            self.search_bar.get_found_labels(&mut entry.control);
+
+                            let response = entry.control.ui(
+                                ui,
+                                &mut session_fragments_mut[&entry.id.id],
+                                false,
+                            );
+
+                            if let Some(response) = response {
+                                path_value_pairs.push(response);
+                            }
+
+                            ui.end_row();
+                        }
+                    }
                 });
         } else {
             ScrollArea::new([false, true])

@@ -11,7 +11,7 @@ pub struct Control {
     nesting_info: NestingInfo,
     default_set: bool,
     default_string: String,
-    content_control: Box<SettingControl>,
+    pub content_control: Box<SettingControl>,
 }
 
 impl Control {
