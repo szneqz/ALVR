@@ -3,8 +3,8 @@ use super::{
     search::SearchControl,
     NestingInfo, SettingControl,
 };
-use crate::dashboard::{DisplayString, ServerRequest};
-use alvr_gui_common::theme;
+use crate::dashboard::ServerRequest;
+use alvr_gui_common::{theme, DisplayString};
 use alvr_packets::AudioDevicesList;
 use alvr_session::{SessionSettings, Settings};
 use eframe::egui::{self, Align, Frame, Grid, Layout, RichText, ScrollArea, Ui};
