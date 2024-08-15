@@ -6,7 +6,7 @@ use serde_json as json;
 
 pub struct Control {
     nesting_info: NestingInfo,
-    controls: Vec<SettingControl>,
+    pub controls: Vec<SettingControl>,
 }
 
 impl Control {

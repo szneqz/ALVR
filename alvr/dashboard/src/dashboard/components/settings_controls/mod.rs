@@ -15,11 +15,13 @@ pub mod text;
 pub mod up_down;
 pub mod vector;
 
+use alvr_common::info;
 use alvr_packets::{PathSegment, PathValuePair};
 use alvr_session::settings_schema::SchemaNode;
 use eframe::egui::Ui;
+use section::Entry;
 use serde_json as json;
-use std::collections::HashMap;
+use std::{collections::HashMap, mem};
 
 pub const INDENTATION_STEP: f32 = 20.0;
 
@@ -161,18 +163,45 @@ impl SettingControl {
         }
     }
 
-    // Method to access `entries` from the Section variant
-    pub fn get_entries(&mut self) -> Option<&mut Vec<section::Entry>> {
-        fn unbox<T>(value: Box<T>) -> T {
-            *value
-        }
-
+    pub fn get_display_name_structure(&mut self, result: &mut Vec<(String, String)>) {
         if let Self::Section(control) = self {
-            Some(&mut control.entries)
-        //} else if let Self::Optional(control) = self {
-        //    let abc = Some(unbox(control.content_control)));
-        } else {
-            None
+            for entry in &mut control.entries {
+                result.push((entry.id.id.clone(), entry.id.display.clone()));
+                entry.control.get_display_name_structure(result);
+            }
+        } else if let Self::Choice(control) = self {
+            for entry in control.variant_labels.clone() {
+                result.push((entry.id, entry.display));
+            }
+            for entry in &mut control.variant_controls {
+                entry.1.get_display_name_structure(result);
+            }
+        } else if let Self::Optional(control) = self {
+            if control.default_set {
+                control.content_control.get_display_name_structure(result);
+            }
+        } else if let Self::Switch(control) = self {
+            control.content_control.get_display_name_structure(result);
+        } else if let Self::Boolean(control) = self {
+            //info!("Boolean");
+        } else if let Self::Text(control) = self {
+            //info!("Text");
+        } else if let Self::Numeric(control) = self {
+            //info!("Numeric");
+        } else if let Self::Array(control) = self {
+            for entry in &mut control.controls {
+                entry.get_display_name_structure(result);
+            }
+        } else if let Self::Vector(control) = self {
+            for entry in &mut control.controls {
+                entry.get_display_name_structure(result);
+            }
+        } else if let Self::Dictionary(control) = self {
+            for entry in &mut control.controls {
+                entry.control.get_display_name_structure(result);
+            }
+        } else if let Self::None = self {
+            //info!("None");
         }
     }
 }

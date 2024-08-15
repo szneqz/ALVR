@@ -115,23 +115,18 @@ impl SearchControl {
         ui.end_row();
     }
 
-    pub fn get_found_labels(&mut self, entry_control: &mut SettingControl) {
-        match entry_control.get_entries() {
-            Some(entries) => {
-                for entry in entries.iter_mut() {
-                    if entry
-                        .id
-                        .display
-                        .to_lowercase()
-                        .contains(&self.query.to_lowercase())
-                    {
-                        info!("{}", &entry.id.display);
-                    }
-                    self.get_found_labels(&mut entry.control);
-                }
-            }
-            None => {
-                // Handle the None case if necessary
+    pub fn get_found_labels(
+        &mut self,
+        entry_control: &mut SettingControl,
+        result: &mut Vec<(String, String)>,
+    ) {
+        if !self.query.is_empty() {
+            entry_control.get_display_name_structure(result);
+
+            result.retain(|x| x.1.to_lowercase().contains(&self.query.to_lowercase()));
+
+            for entry in result {
+                info!("{} - {}", entry.0, entry.1);
             }
         }
     }

@@ -15,7 +15,7 @@ pub struct Control {
     nesting_info: NestingInfo,
     default_element: SchemaNode,
     default: Vec<json::Value>,
-    controls: Vec<SettingControl>,
+    pub controls: Vec<SettingControl>,
 }
 
 impl Control {

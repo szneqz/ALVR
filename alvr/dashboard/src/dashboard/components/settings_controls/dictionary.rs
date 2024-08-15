@@ -11,9 +11,9 @@ use eframe::{
 };
 use serde_json as json;
 
-struct Entry {
+pub struct Entry {
     editing_key: Option<String>,
-    control: SettingControl,
+    pub control: SettingControl,
 }
 
 pub struct Control {
@@ -21,7 +21,7 @@ pub struct Control {
     default_key: String,
     default_value: SchemaNode,
     default: Vec<json::Value>,
-    controls: Vec<Entry>,
+    pub controls: Vec<Entry>,
 }
 
 impl Control {

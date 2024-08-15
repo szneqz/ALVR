@@ -4,13 +4,14 @@ use super::{
     NestingInfo, SettingControl,
 };
 use crate::dashboard::ServerRequest;
+use alvr_common::info;
 use alvr_gui_common::{theme, DisplayString};
 use alvr_packets::AudioDevicesList;
 use alvr_session::{SessionSettings, Settings};
 use eframe::egui::{self, Align, Frame, Grid, Layout, RichText, ScrollArea, Ui};
 #[cfg(target_arch = "wasm32")]
 use instant::Instant;
-use serde_json as json;
+use serde_json::{self as json, Value};
 use settings_schema::SchemaNode;
 use std::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
@@ -201,31 +202,59 @@ impl SettingsTab {
                         })
                 });
         } else if self.selected_top_tab_id == "search" {
-            Grid::new("search_grid")
-                .striped(true)
-                .num_columns(3)
+            ScrollArea::new([false, true])
+                .id_source("search_scroll")
                 .show(ui, |ui| {
-                    self.search_bar.ui(ui, &mut self.session_settings_json);
+                    Grid::new("search_grid")
+                        .striped(true)
+                        .num_columns(3)
+                        .show(ui, |ui| {
+                            self.search_bar.ui(ui, &mut self.session_settings_json);
 
-                    if let Some(session_fragment) = &mut self.session_settings_json {
-                        let session_fragments_mut = session_fragment.as_object_mut().unwrap();
+                            if !self.search_bar.query.is_empty() {
+                                if let Some(session_fragment) = &mut self.session_settings_json {
+                                    let session_fragments_mut =
+                                        session_fragment.as_object_mut().unwrap();
 
-                        for entry in &mut self.top_level_entries {
-                            self.search_bar.get_found_labels(&mut entry.control);
+                                    for entry in &mut self.top_level_entries {
+                                        let mut result: Vec<(String, String)> = Vec::new();
+                                        self.search_bar
+                                            .get_found_labels(&mut entry.control, &mut result);
 
-                            let response = entry.control.ui(
-                                ui,
-                                &mut session_fragments_mut[&entry.id.id],
-                                false,
-                            );
+                                        let mut result2: Vec<String> =
+                                            result.into_iter().map(|f| (f.0)).collect();
 
-                            if let Some(response) = response {
-                                path_value_pairs.push(response);
+                                        result2.push("gui_collapsed".to_owned());
+
+                                        for res_entry in result2.clone() {
+                                            info!("{}", res_entry);
+                                        }
+
+                                        Self::remove_unmatched_branches(
+                                            &mut session_fragments_mut[&entry.id.id],
+                                            result2,
+                                        );
+
+                                        info!(
+                                            "{}",
+                                            session_fragments_mut[&entry.id.id].to_string()
+                                        );
+
+                                        let response = entry.control.ui(
+                                            ui,
+                                            &mut session_fragments_mut[&entry.id.id],
+                                            false,
+                                        );
+
+                                        if let Some(response) = response {
+                                            path_value_pairs.push(response);
+                                        }
+
+                                        ui.end_row();
+                                    }
+                                }
                             }
-
-                            ui.end_row();
-                        }
-                    }
+                        });
                 });
         } else {
             ScrollArea::new([false, true])
@@ -268,5 +297,42 @@ impl SettingsTab {
         }
 
         requests
+    }
+
+    fn remove_unmatched_branches(value: &mut Value, key_names: Vec<String>) -> bool {
+        match value {
+            Value::Object(map) => {
+                let keys_to_remove: Vec<String> = map
+                    .iter_mut()
+                    .filter_map(|(k, v)| {
+                        // Recursively process nested objects
+                        if Self::remove_unmatched_branches(v, key_names.clone()) {
+                            None // Keep this branch
+                        } else {
+                            Some(k.clone()) // Mark this key for removal
+                        }
+                    })
+                    .collect();
+
+                for key in keys_to_remove {
+                    map.remove(&key);
+                }
+
+                // Return true if the object contains any matching keys
+                !map.is_empty() || map.keys().any(|k| key_names.contains(k))
+            }
+            Value::Array(array) => {
+                let mut i = 0;
+                while i < array.len() {
+                    if !Self::remove_unmatched_branches(&mut array[i], key_names.clone()) {
+                        array.remove(i);
+                    } else {
+                        i += 1;
+                    }
+                }
+                !array.is_empty() // Return true if the array is not empty
+            }
+            _ => false, // For primitive values, return false to remove them
+        }
     }
 }

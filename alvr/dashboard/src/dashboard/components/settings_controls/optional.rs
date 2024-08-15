@@ -9,7 +9,7 @@ use serde_json as json;
 
 pub struct Control {
     nesting_info: NestingInfo,
-    default_set: bool,
+    pub default_set: bool,
     default_string: String,
     pub content_control: Box<SettingControl>,
 }

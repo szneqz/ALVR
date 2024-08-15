@@ -32,9 +32,9 @@ pub struct Control {
     nesting_info: NestingInfo,
     default_variant: String,
     default_string: String,
-    variant_labels: Vec<DisplayString>,
+    pub variant_labels: Vec<DisplayString>,
     variant_indices: HashMap<String, usize>,
-    variant_controls: HashMap<String, SettingControl>,
+    pub variant_controls: HashMap<String, SettingControl>,
     gui: ChoiceControlType,
     combobox_id: usize,
 }
