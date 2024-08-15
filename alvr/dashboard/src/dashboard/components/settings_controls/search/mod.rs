@@ -1,6 +1,5 @@
-use crate::dashboard::basic_components;
 use alvr_common::info;
-use alvr_gui_common::theme::log_colors::INFO_LIGHT;
+use alvr_gui_common::{theme::log_colors::INFO_LIGHT, tooltip};
 use eframe::egui::{vec2, Align, Grid, Layout, TextEdit, Ui};
 use serde_json::Value;
 
@@ -68,7 +67,7 @@ impl SearchControl {
             ui.label("Search Settings");
 
             if ui.colored_label(INFO_LIGHT, "❓").hovered() {
-                basic_components::tooltip(ui, "search_help_tooltip", "BLA BLA BLA");
+                tooltip(ui, "search_help_tooltip", "BLA BLA BLA");
             }
         });
 
