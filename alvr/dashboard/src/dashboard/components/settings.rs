@@ -218,21 +218,37 @@ impl SettingsTab {
 
                                     for entry in &mut self.top_level_entries {
                                         let mut result: Vec<(String, String)> = Vec::new();
-                                        self.search_bar
-                                            .get_found_labels(&mut entry.control, &mut result);
+                                        let mut result_all: Vec<(String, String)> = Vec::new();
+                                        self.search_bar.get_found_labels(
+                                            &mut entry.control,
+                                            &mut result,
+                                            &mut result_all,
+                                        );
 
                                         let mut result2: Vec<String> =
                                             result.into_iter().map(|f| (f.0)).collect();
 
-                                        result2.push("gui_collapsed".to_owned());
+                                        let mut result_all2: Vec<String> =
+                                            result_all.into_iter().map(|f| (f.0)).collect();
+
+                                        //result2.push("gui_collapsed".to_owned());
+                                        //result2.push("variant".to_owned());
+                                        result2.push("content".to_owned());
+                                        //result2.push("enabled".to_owned());
 
                                         for res_entry in result2.clone() {
                                             info!("{}", res_entry);
                                         }
 
+                                        info!(
+                                            "{}",
+                                            session_fragments_mut[&entry.id.id].to_string()
+                                        );
+
                                         Self::remove_unmatched_branches(
                                             &mut session_fragments_mut[&entry.id.id],
                                             result2,
+                                            result_all2,
                                         );
 
                                         info!(
@@ -299,40 +315,78 @@ impl SettingsTab {
         requests
     }
 
-    fn remove_unmatched_branches(value: &mut Value, key_names: Vec<String>) -> bool {
+    fn remove_unmatched_branches(
+        value: &mut Value,
+        key_names: Vec<String>,
+        not_ignore_names: Vec<String>,
+    ) -> bool {
         match value {
             Value::Object(map) => {
+                let mut keep = false;
                 let keys_to_remove: Vec<String> = map
                     .iter_mut()
                     .filter_map(|(k, v)| {
-                        // Recursively process nested objects
-                        if Self::remove_unmatched_branches(v, key_names.clone()) {
-                            None // Keep this branch
+                        let stay = key_names.contains(k);
+                        if Self::remove_unmatched_branches(
+                            v,
+                            key_names.clone(),
+                            not_ignore_names.clone(),
+                        ) || stay
+                        {
+                            keep = true; // Mark to keep this branch if any child matches
+                            info!("{} - {}", keep, v.to_string());
+                            None
+                        } else if not_ignore_names.contains(k) {
+                            // If it's a leaf node (not an object or array), keep it
+                            keep = true;
+                            None
                         } else {
-                            Some(k.clone()) // Mark this key for removal
+                            info!("{} - {}", false, v.to_string());
+                            Some(k.clone())
                         }
                     })
                     .collect();
+
+                for keymap in map.clone() {
+                    info!(
+                        "{} <- map value = {} {}",
+                        keymap.0,
+                        keep,
+                        map.keys().any(|k| key_names.contains(k))
+                    );
+                }
 
                 for key in keys_to_remove {
                     map.remove(&key);
                 }
 
-                // Return true if the object contains any matching keys
-                !map.is_empty() || map.keys().any(|k| key_names.contains(k))
+                // Keep this object if it has matching keys or any of its children were kept
+                keep || map.keys().any(|k| key_names.contains(k))
             }
             Value::Array(array) => {
                 let mut i = 0;
+                let mut keep = false;
+
                 while i < array.len() {
-                    if !Self::remove_unmatched_branches(&mut array[i], key_names.clone()) {
-                        array.remove(i);
-                    } else {
+                    if Self::remove_unmatched_branches(
+                        &mut array[i],
+                        key_names.clone(),
+                        not_ignore_names.clone(),
+                    ) {
+                        keep = true;
+                        i += 1; // Move to the next element
+                    } else if !array[i].is_object() && !array[i].is_array() {
+                        // If it's a leaf node (not an object or array), keep it
+                        //keep = true;
                         i += 1;
+                    } else {
+                        array.remove(i); // Remove the element at index i
                     }
                 }
-                !array.is_empty() // Return true if the array is not empty
+
+                keep // Keep this array if any of its elements were kept
             }
-            _ => false, // For primitive values, return false to remove them
+            _ => false, // Primitive values are only kept if they are within objects or arrays with matching keys
         }
     }
 }

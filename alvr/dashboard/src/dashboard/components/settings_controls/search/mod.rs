@@ -119,9 +119,13 @@ impl SearchControl {
         &mut self,
         entry_control: &mut SettingControl,
         result: &mut Vec<(String, String)>,
+        result_all: &mut Vec<(String, String)>,
     ) {
         if !self.query.is_empty() {
             entry_control.get_display_name_structure(result);
+
+            result_all.clear();
+            result_all.extend(result.iter().cloned());
 
             result.retain(|x| x.1.to_lowercase().contains(&self.query.to_lowercase()));
 
