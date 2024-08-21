@@ -23,7 +23,7 @@ use alvr_common::{
 };
 use alvr_filesystem as afs;
 use alvr_packets::{ButtonValue, Haptics};
-use alvr_server_core::{ServerCoreContext, ServerCoreEvent, REGISTERED_BUTTON_SET};
+use alvr_server_core::{ServerCoreContext, ServerCoreEvent};
 use alvr_session::{CodecType, ControllersConfig};
 use std::{
     ffi::{c_char, c_void, CString},
@@ -262,10 +262,10 @@ pub extern "C" fn register_buttons(device_id: u64) {
         device_id
     };
 
-    for id in &*REGISTERED_BUTTON_SET {
-        if let Some(info) = BUTTON_INFO.get(id) {
+    for id in alvr_server_core::registered_button_set() {
+        if let Some(info) = BUTTON_INFO.get(&id) {
             if info.device_id == mapped_device_id {
-                unsafe { RegisterButton(device_id, *id) };
+                unsafe { RegisterButton(device_id, id) };
             }
         } else {
             error!("Cannot register unrecognized button ID {id}");
@@ -377,7 +377,14 @@ pub unsafe extern "C" fn HmdDriverFactory(
 ) -> *mut c_void {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        alvr_server_core::init_logging();
+        alvr_server_core::initialize_environment(FILESYSTEM_LAYOUT.clone());
+
+        let log_to_disk = alvr_server_core::settings().extra.logging.log_to_disk;
+
+        alvr_server_core::init_logging(
+            log_to_disk.then(|| FILESYSTEM_LAYOUT.session_log()),
+            Some(FILESYSTEM_LAYOUT.crash_log()),
+        );
 
         unsafe {
             g_sessionPath = CString::new(FILESYSTEM_LAYOUT.session().to_string_lossy().to_string())
@@ -399,7 +406,8 @@ pub unsafe extern "C" fn HmdDriverFactory(
             LogError = Some(alvr_server_core::alvr_log_error);
             LogWarn = Some(alvr_server_core::alvr_log_warn);
             LogInfo = Some(alvr_server_core::alvr_log_info);
-            LogDebug = Some(alvr_server_core::alvr_log_debug);
+            LogDebug = Some(alvr_server_core::alvr_dbg_server_impl);
+            LogEncoder = Some(alvr_server_core::alvr_dbg_encoder);
             LogPeriodically = Some(alvr_server_core::alvr_log_periodically);
             PathStringToHash = Some(alvr_server_core::alvr_path_to_id);
             GetSerialNumber = Some(props::get_serial_number);
